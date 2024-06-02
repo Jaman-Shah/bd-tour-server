@@ -38,13 +38,24 @@ async function run() {
      * --------------------------------->
      */
 
+    // getting users
+    app.get("/users", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
     //   creating users
 
-    app.post("/users", async (req, res) => {
+    app.put("/users", async (req, res) => {
       const user = req.body;
+      const { email } = user;
+      const userExist = await userCollection.findOne({ email });
+      if (userExist) {
+        return;
+      }
       console.log(user);
-      //   const result = await userCollection.insertOne(user);
-      //   res.send(result);
+      const result = await userCollection.insertOne(user);
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
