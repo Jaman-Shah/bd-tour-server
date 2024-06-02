@@ -32,6 +32,7 @@ async function run() {
 
     const db = client.db("touristGuideDB");
     const userCollection = db.collection("users");
+    const packageCollection = db.collection("packages");
 
     /**--------------------------------->
      * Auth Related API******************>
@@ -62,6 +63,15 @@ async function run() {
         return;
       }
       const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    // creating packages
+
+    app.post("/packages", async (req, res) => {
+      const package = req.body;
+      console.log(package);
+      const result = await packageCollection.insertOne(package);
       res.send(result);
     });
 
