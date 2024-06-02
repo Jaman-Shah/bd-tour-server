@@ -44,6 +44,14 @@ async function run() {
       res.send(result);
     });
 
+    // getting single users info with email
+
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await userCollection.findOne({ email });
+      res.send(result);
+    });
+
     //   creating users
 
     app.put("/users", async (req, res) => {
@@ -53,7 +61,6 @@ async function run() {
       if (userExist) {
         return;
       }
-      console.log(user);
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
