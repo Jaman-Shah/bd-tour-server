@@ -70,8 +70,28 @@ async function run() {
 
     app.post("/packages", async (req, res) => {
       const package = req.body;
-      console.log(package);
       const result = await packageCollection.insertOne(package);
+      res.send(result);
+    });
+
+    // updating user api
+
+    app.put("/updateuser", async (req, res) => {
+      const { id, role, status } = req.query;
+
+      const filter = { _id: new ObjectId(id) };
+      const updatedUser = {
+        $set: {
+          role,
+          status: status || "accepted",
+        },
+      };
+      const options = { upsert: true };
+      const result = await userCollection.updateOne(
+        filter,
+        updatedUser,
+        options
+      );
       res.send(result);
     });
 
