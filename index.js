@@ -66,6 +66,13 @@ async function run() {
       res.send(result);
     });
 
+    // getting packages
+
+    app.get("/packages", async (req, res) => {
+      const result = await packageCollection.find().toArray();
+      res.send(result);
+    });
+
     // creating packages
 
     app.post("/packages", async (req, res) => {
