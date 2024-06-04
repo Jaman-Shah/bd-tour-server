@@ -1,6 +1,6 @@
 require("dotenv").config();
 const express = require("express");
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId, Long } = require("mongodb");
 const app = express();
 const cors = require("cors");
 const port = process.env.PORT || 5006;
@@ -33,6 +33,7 @@ async function run() {
     const db = client.db("touristGuideDB");
     const userCollection = db.collection("users");
     const packageCollection = db.collection("packages");
+    const bookingCollection = db.collection("bookings");
 
     /**--------------------------------->
      * Auth Related API******************>
@@ -73,6 +74,15 @@ async function run() {
       res.send(result);
     });
 
+    // get single package by id
+
+    app.get("/package/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await packageCollection.findOne(query);
+      res.send(result);
+    });
+
     // creating packages
 
     app.post("/packages", async (req, res) => {
@@ -99,6 +109,22 @@ async function run() {
         updatedUser,
         options
       );
+      res.send(result);
+    });
+
+    // getting all guides api
+
+    app.get("/guides", async (req, res) => {
+      const query = { role: "guide" };
+      const result = await userCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // creating booking
+
+    app.post("/bookings", async (req, res) => {
+      const booking = req.body;
+      const result = await bookingCollection.insertOne(booking);
       res.send(result);
     });
 
