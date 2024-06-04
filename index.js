@@ -34,6 +34,7 @@ async function run() {
     const userCollection = db.collection("users");
     const packageCollection = db.collection("packages");
     const bookingCollection = db.collection("bookings");
+    const wishListCollection = db.collection("wishlists");
 
     /**--------------------------------->
      * Auth Related API******************>
@@ -153,6 +154,30 @@ async function run() {
       const result = await bookingCollection.find().toArray({ email });
       res.send(result);
     });
+
+    // wishlist data create with post method
+
+    app.post("/wishlists", async (req, res) => {
+      const wishlist = req.body;
+      const result = await wishListCollection.insertOne(wishlist);
+      res.send(result);
+    });
+
+    // wishlists data getting api
+
+    app.get("/wishlists", async (req, res) => {
+      const result = await wishListCollection.find().toArray();
+      res.send(result);
+    });
+
+    // const getting wishlists by email
+
+    app.get("/wishlists/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await wishListCollection.find({ email }).toArray();
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
