@@ -122,12 +122,37 @@ async function run() {
 
     // creating booking
 
+    // get all bookings
+    app.get("/bookings", async (req, res) => {
+      const result = await bookingCollection.find().toArray();
+      res.send(result);
+    });
+
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
+      const { package_id, tourist_email } = req.body;
+      const idEmailExist = await bookingCollection
+        .find({
+          package_id,
+          tourist_email,
+        })
+        .toArray();
+      console.log(idEmailExist.length);
+      if (idEmailExist.length > 0) {
+        return res.send({ message: "You Already Ordered This" });
+      }
+
       const result = await bookingCollection.insertOne(booking);
       res.send(result);
     });
 
+    // get bookings with email
+
+    app.get("/bookings/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await bookingCollection.find().toArray({ email });
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
