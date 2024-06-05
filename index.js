@@ -35,6 +35,7 @@ async function run() {
     const packageCollection = db.collection("packages");
     const bookingCollection = db.collection("bookings");
     const wishListCollection = db.collection("wishlists");
+    const guideProfileCollection = db.collection("guide_profiles");
 
     /**--------------------------------->
      * Auth Related API******************>
@@ -121,6 +122,18 @@ async function run() {
       res.send(result);
     });
 
+    // creating guide collection with empty value when new guide created
+
+    app.post("/guidesInfo", async (req, res) => {
+      const guideInfo = req.body;
+      const { email } = guideInfo;
+      console.log(guideInfo);
+      const guideExist = await guideProfileCollection.find({ email }).toArray();
+      if (guideExist.length > 0) return;
+      const result = await guideProfileCollection.insertOne(guideInfo);
+      res.send(result);
+    });
+
     // creating booking
 
     // get all bookings
@@ -151,7 +164,7 @@ async function run() {
 
     app.get("/bookings/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await bookingCollection.find().toArray({ email });
+      const result = await bookingCollection.find({ email }).toArray();
       res.send(result);
     });
 
