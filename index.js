@@ -155,6 +155,34 @@ async function run() {
       res.send(result);
     });
 
+    // getting bookings where guides email appeared
+    app.get("/bookings/guide/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await bookingCollection
+        .find({ guide_email: email })
+        .toArray();
+      res.send(result);
+    });
+
+    // guide updating bookings status route
+
+    app.put("/bookings", async (req, res) => {
+      const { id, status } = req.query;
+      const filter = { _id: new ObjectId(id) };
+      const updateBooking = {
+        $set: {
+          status: status,
+        },
+      };
+      const options = { upsert: true };
+      const result = await bookingCollection.updateOne(
+        filter,
+        updateBooking,
+        options
+      );
+      res.send(result);
+    });
+
     // wishlist data create with post method
 
     app.post("/wishlists", async (req, res) => {
