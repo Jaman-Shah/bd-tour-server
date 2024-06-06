@@ -58,7 +58,7 @@ async function run() {
 
     //   creating users
 
-    app.put("/users", async (req, res) => {
+    app.post("/users", async (req, res) => {
       const user = req.body;
       const { email } = user;
       const userExist = await userCollection.findOne({ email });
@@ -122,25 +122,39 @@ async function run() {
       res.send(result);
     });
 
-    // creating guide collection with empty value when new guide created
+    // get single guides with email
 
-    app.post("/guidesInfo", async (req, res) => {
-      const guideInfo = req.body;
-      const { email } = guideInfo;
-      console.log(guideInfo);
-      const guideExist = await guideProfileCollection.find({ email }).toArray();
-      if (guideExist.length > 0) return;
-      const result = await guideProfileCollection.insertOne(guideInfo);
+    app.get("/guides/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await userCollection.findOne({ role: "guide", email });
       res.send(result);
     });
 
-    // creating booking
+    // updating guide profile
+    app.put("/users", async (req, res) => {
+      const guideInfo = req.body;
+      const { email } = guideInfo;
+      const filter = { email };
+      const updatedUser = {
+        $set: {
+          ...guideInfo,
+        },
+      };
+      const options = { upsert: true };
+      const result = await userCollection.updateOne(
+        filter,
+        updatedUser,
+        options
+      );
+      res.send(result);
+    });
 
     // get all bookings
     app.get("/bookings", async (req, res) => {
       const result = await bookingCollection.find().toArray();
       res.send(result);
     });
+    // creating booking
 
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
