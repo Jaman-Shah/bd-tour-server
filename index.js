@@ -35,7 +35,7 @@ async function run() {
     const packageCollection = db.collection("packages");
     const bookingCollection = db.collection("bookings");
     const wishListCollection = db.collection("wishlists");
-    const guideProfileCollection = db.collection("guide_profiles");
+    const guideReviewCollection = db.collection("guide_reviews");
 
     /**--------------------------------->
      * Auth Related API******************>
@@ -124,9 +124,10 @@ async function run() {
 
     // get single guides with email
 
-    app.get("/guides/:email", async (req, res) => {
-      const email = req.params.email;
-      const result = await userCollection.findOne({ role: "guide", email });
+    app.get("/guides/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id), role: "guide" };
+      const result = await userCollection.findOne(query);
       res.send(result);
     });
 
@@ -239,6 +240,30 @@ async function run() {
       const result = await wishListCollection.deleteOne({
         _id: new ObjectId(id),
       });
+      res.send(result);
+    });
+
+    // guide review apis
+
+    app.post("/reviews/guides", async (req, res) => {
+      const review = req.body;
+      const result = await guideReviewCollection.insertOne(review);
+      res.send(result);
+    });
+
+    // get all reviews
+
+    app.get("/reviews/guides", async (req, res) => {
+      const result = await guideReviewCollection.find().toArray();
+      res.send(result);
+    });
+    // getting all reviews to show
+
+    app.get("/reviews/guides/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await guideReviewCollection
+        .find({ guide_email: email })
+        .toArray();
       res.send(result);
     });
 
