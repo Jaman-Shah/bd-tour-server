@@ -86,6 +86,13 @@ async function run() {
       res.send(result);
     });
 
+    // get packages by type
+    app.get("/packages/:type", async (req, res) => {
+      const type = req.params.type;
+      const result = await packageCollection.find({ type }).toArray();
+      res.send(result);
+    });
+
     // creating packages
 
     app.post("/packages", async (req, res) => {
