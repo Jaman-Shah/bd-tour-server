@@ -92,8 +92,16 @@ async function run() {
      */
 
     // getting users
-    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
-      const result = await userCollection.find().toArray();
+    app.get("/users", async (req, res) => {
+      const { name, role } = req.query;
+      let query = {};
+      if (name) {
+        query.name = { $regex: name, $options: "i" };
+      }
+      if (role) {
+        query.role = role;
+      }
+      const result = await userCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -151,7 +159,7 @@ async function run() {
 
     // updating user api
 
-    app.put("/updateuser", verifyToken, verifyAdmin, async (req, res) => {
+    app.put("/updateuser", verifyToken, async (req, res) => {
       const { id, role, status } = req.query;
 
       const filter = { _id: new ObjectId(id) };
