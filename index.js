@@ -92,7 +92,9 @@ async function run() {
      */
 
     // getting users
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
       const { name, role } = req.query;
       let query = {};
       if (name) {
@@ -101,8 +103,19 @@ async function run() {
       if (role) {
         query.role = role;
       }
-      const result = await userCollection.find(query).toArray();
+      const result = await userCollection
+        .find(query)
+        .skip((page - 1) * size)
+        .limit(size)
+        .toArray();
       res.send(result);
+    });
+
+    // getting users length for pagination
+
+    app.get("/users/count", async (req, res) => {
+      const result = await userCollection.estimatedDocumentCount();
+      res.send({ count: result });
     });
 
     // getting single users info with email
