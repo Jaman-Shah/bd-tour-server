@@ -4,6 +4,7 @@ const { MongoClient, ServerApiVersion, ObjectId, Long } = require("mongodb");
 const app = express();
 const cors = require("cors");
 const port = process.env.PORT || 5006;
+const jwt = require("jsonwebtoken");
 
 app.use(
   cors({
@@ -38,13 +39,60 @@ async function run() {
     const guideReviewCollection = db.collection("guide_reviews");
     const storyCollection = db.collection("stories");
 
+    // jwt token create
+
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT_SECRET_KEY, {
+        expiresIn: "1d",
+      });
+
+      res.send({ token });
+    });
+
+    // verify token
+
+    const verifyToken = async (req, res, next) => {
+      console.log("inside verify token", req.headers.authorization);
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: "Unauthorized access" });
+      }
+      const token = req.headers.authorization.split(" ")[1];
+      console.log(token);
+      jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
+        if (err) {
+          return res.status(401).send({ message: "Unauthorized access" });
+        }
+        req.decoded = decoded;
+        next();
+      });
+    };
+
+    const verifyGuide = async (req, res, next) => {
+      const emailInToken = req.decoded.email;
+      const guide = await userCollection.findOne({ email: emailInToken });
+      if (guide.role !== "guide") {
+        return res.status(403).send({ message: "Forbidden" });
+      }
+      next();
+    };
+
+    const verifyAdmin = async (req, res, next) => {
+      const emailInToken = req.decoded.email;
+      const admin = await userCollection.findOne({ email: emailInToken });
+      if (admin.role !== "admin") {
+        return res.status(403).send({ message: "Forbidden" });
+      }
+      next();
+    };
+
     /**--------------------------------->
-     * Auth Related API******************>
+     * services Related API******************>
      * --------------------------------->
      */
 
     // getting users
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
@@ -95,7 +143,7 @@ async function run() {
 
     // creating packages
 
-    app.post("/packages", async (req, res) => {
+    app.post("/packages", verifyToken, verifyAdmin, async (req, res) => {
       const package = req.body;
       const result = await packageCollection.insertOne(package);
       res.send(result);
@@ -103,7 +151,7 @@ async function run() {
 
     // updating user api
 
-    app.put("/updateuser", async (req, res) => {
+    app.put("/updateuser", verifyToken, verifyAdmin, async (req, res) => {
       const { id, role, status } = req.query;
 
       const filter = { _id: new ObjectId(id) };
@@ -140,7 +188,7 @@ async function run() {
     });
 
     // updating guide profile
-    app.put("/users", async (req, res) => {
+    app.put("/users", verifyToken, verifyAdmin, async (req, res) => {
       const guideInfo = req.body;
       const { email } = guideInfo;
       const filter = { email };
@@ -159,13 +207,13 @@ async function run() {
     });
 
     // get all bookings
-    app.get("/bookings", async (req, res) => {
+    app.get("/bookings", verifyToken, async (req, res) => {
       const result = await bookingCollection.find().toArray();
       res.send(result);
     });
     // creating booking
 
-    app.post("/bookings", async (req, res) => {
+    app.post("/bookings", verifyToken, async (req, res) => {
       const booking = req.body;
       const { package_id, tourist_email } = req.body;
       const idEmailExist = await bookingCollection
@@ -185,9 +233,9 @@ async function run() {
 
     // get bookings with email
 
-    app.get("/bookings/:email", async (req, res) => {
+    app.get("/bookings/:email", verifyToken, async (req, res) => {
+      console.log(req.decoded);
       const email = req.params.email;
-      console.log(email);
       const result = await bookingCollection
         .find({ tourist_email: email })
         .toArray();
@@ -195,17 +243,22 @@ async function run() {
     });
 
     // getting bookings where guides email appeared
-    app.get("/bookings/guide/:email", async (req, res) => {
-      const email = req.params.email;
-      const result = await bookingCollection
-        .find({ guide_email: email })
-        .toArray();
-      res.send(result);
-    });
+    app.get(
+      "/bookings/guide/:email",
+      verifyToken,
+      verifyGuide,
+      async (req, res) => {
+        const email = req.params.email;
+        const result = await bookingCollection
+          .find({ guide_email: email })
+          .toArray();
+        res.send(result);
+      }
+    );
 
     // guide updating bookings status route
 
-    app.put("/bookings", async (req, res) => {
+    app.put("/bookings", verifyToken, verifyGuide, async (req, res) => {
       const { id, status } = req.query;
       const filter = { _id: new ObjectId(id) };
       const updateBooking = {
@@ -224,7 +277,7 @@ async function run() {
 
     // wishlist data create with post method
 
-    app.post("/wishlists", async (req, res) => {
+    app.post("/wishlists", verifyToken, async (req, res) => {
       const wishlist = req.body;
       const result = await wishListCollection.insertOne(wishlist);
       res.send(result);
@@ -232,21 +285,21 @@ async function run() {
 
     // wishlists data getting api
 
-    app.get("/wishlists", async (req, res) => {
+    app.get("/wishlists", verifyToken, async (req, res) => {
       const result = await wishListCollection.find().toArray();
       res.send(result);
     });
 
     // const getting wishlists by email
 
-    app.get("/wishlists/:email", async (req, res) => {
+    app.get("/wishlists/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const result = await wishListCollection.find({ email }).toArray();
       res.send(result);
     });
 
     // delete wishlist by id
-    app.delete("/wishlist/:id", async (req, res) => {
+    app.delete("/wishlist/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const result = await wishListCollection.deleteOne({
         _id: new ObjectId(id),
@@ -256,7 +309,7 @@ async function run() {
 
     // guide review apis
 
-    app.post("/reviews/guides", async (req, res) => {
+    app.post("/reviews/guides", verifyToken, async (req, res) => {
       const review = req.body;
       const result = await guideReviewCollection.insertOne(review);
       res.send(result);
