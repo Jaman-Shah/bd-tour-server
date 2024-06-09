@@ -5,6 +5,7 @@ const app = express();
 const cors = require("cors");
 const port = process.env.PORT || 5006;
 const jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 app.use(
   cors({
@@ -38,6 +39,7 @@ async function run() {
     const userCollection = db.collection("users");
     const packageCollection = db.collection("packages");
     const bookingCollection = db.collection("bookings");
+    const paymentCollection = db.collection("payments");
     const wishListCollection = db.collection("wishlists");
     const guideReviewCollection = db.collection("guide_reviews");
     const storyCollection = db.collection("stories");
@@ -87,6 +89,24 @@ async function run() {
       }
       next();
     };
+
+    // payment related api
+
+    app.post("/create-payment-intent", async (req, res) => {
+      const price = req.body.price;
+      const priceInCent = parseFloat(price) * 100;
+      if (!price || priceInCent < 1) return;
+      const { client_secret } = await stripe.paymentIntents.create({
+        amount: priceInCent,
+        currency: "usd",
+        // In the latest version of the API, specifying the `automatic_payment_methods` parameter is optional because Stripe enables its functionality by default.
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      res.send({ clientSecret: client_secret });
+    });
 
     /**--------------------------------->
      * services Related API******************>
@@ -375,6 +395,32 @@ async function run() {
       const id = req.params.id;
       const result = await storyCollection.findOne({ _id: new ObjectId(id) });
       res.send(result);
+    });
+
+    // payment collection api
+
+    app.put("/payment", async (req, res) => {
+      const { _id: booking_id, ...paymentInfo } = req.body;
+      console.log(paymentInfo);
+      console.log(booking_id);
+
+      // Insert payment info into the payment collection
+      const resultOfPayment = await paymentCollection.insertOne(paymentInfo);
+
+      // Update the booking status to 'Paid'
+      const filter = { _id: new ObjectId(booking_id) };
+      const updateBooking = {
+        $set: {
+          status: "Paid",
+        },
+      };
+
+      const resultOfBooking = await bookingCollection.updateOne(
+        filter,
+        updateBooking
+      );
+
+      res.send({ resultOfPayment, resultOfBooking });
     });
 
     // Send a ping to confirm a successful connection
