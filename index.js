@@ -56,12 +56,11 @@ async function run() {
     // verify token
 
     const verifyToken = async (req, res, next) => {
-      console.log("inside verify token", req.headers.authorization);
       if (!req.headers.authorization) {
         return res.status(401).send({ message: "Unauthorized access" });
       }
       const token = req.headers.authorization.split(" ")[1];
-      console.log(token);
+
       jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
         if (err) {
           return res.status(401).send({ message: "Unauthorized access" });
@@ -246,7 +245,7 @@ async function run() {
           tourist_email,
         })
         .toArray();
-      console.log(idEmailExist.length);
+
       if (idEmailExist.length > 0) {
         return res.send({ message: "You Already Ordered This" });
       }
@@ -258,7 +257,6 @@ async function run() {
     // get bookings with email
 
     app.get("/bookings/:email", verifyToken, async (req, res) => {
-      console.log(req.decoded);
       const email = req.params.email;
       const result = await bookingCollection
         .find({ tourist_email: email })
