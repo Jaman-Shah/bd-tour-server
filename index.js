@@ -8,7 +8,10 @@ const jwt = require("jsonwebtoken");
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://cardoctor-bd.web.app"],
+    origin: [
+      "http://localhost:5173",
+      "https://tourist-guide-jaman-shah.web.app",
+    ],
   })
 );
 app.use(express.json());
