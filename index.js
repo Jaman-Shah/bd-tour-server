@@ -284,6 +284,13 @@ async function run() {
       res.send(result);
     });
 
+    // booking count router for checking how many times a user is making booking
+    app.get("/bookings/count/:email", async (req, res) => {
+      const email = req.params.email;
+      const count = await bookingCollection.estimatedDocumentCount({ email });
+      res.send({ count });
+    });
+
     // getting bookings where guides email appeared
     app.get(
       "/bookings/guide/:email",
@@ -314,6 +321,15 @@ async function run() {
         updateBooking,
         options
       );
+      res.send(result);
+    });
+
+    // deleting a booking
+
+    app.delete("/booking/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bookingCollection.deleteOne(query);
       res.send(result);
     });
 
@@ -351,7 +367,7 @@ async function run() {
 
     // guide review apis
 
-    app.post("/reviews/guides", verifyToken, async (req, res) => {
+    app.post("/reviews/guides", async (req, res) => {
       const review = req.body;
       const result = await guideReviewCollection.insertOne(review);
       res.send(result);
