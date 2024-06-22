@@ -44,19 +44,17 @@ async function run() {
     const guideReviewCollection = db.collection("guide_reviews");
     const storyCollection = db.collection("stories");
 
-    // jwt token create
+    // jwt token creating
 
     app.post("/jwt", async (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.JWT_SECRET_KEY, {
         expiresIn: "1d",
       });
-
       res.send({ token });
     });
 
     // verify token
-
     const verifyToken = async (req, res, next) => {
       if (!req.headers.authorization) {
         return res.status(401).send({ message: "Unauthorized access" });
@@ -82,12 +80,28 @@ async function run() {
     };
 
     const verifyAdmin = async (req, res, next) => {
-      const emailInToken = req.decoded.email;
-      const admin = await userCollection.findOne({ email: emailInToken });
-      if (admin.role !== "admin") {
-        return res.status(403).send({ message: "Forbidden" });
+      try {
+        const emailInToken = req.decoded.email;
+        console.log("Decoded email from token:", emailInToken);
+
+        const admin = await userCollection.findOne({ email: emailInToken });
+        console.log("Admin fetched from DB:", admin);
+
+        if (!admin) {
+          return res.status(404).send({ message: "User not found" });
+        }
+
+        console.log("Admin role from DB:", admin.role);
+
+        if (admin.role !== "admin") {
+          return res.status(403).send({ message: "Forbidden" });
+        }
+
+        next();
+      } catch (error) {
+        console.error("Error in verifyAdmin middleware:", error);
+        return res.status(500).send({ message: "Internal Server Error" });
       }
-      next();
     };
 
     // payment related api
@@ -114,7 +128,7 @@ async function run() {
      */
 
     // getting users
-    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
+    app.get("/users", async (req, res) => {
       const page = parseInt(req.query.page);
       const size = parseInt(req.query.size);
       const { name, role } = req.query;
@@ -144,6 +158,7 @@ async function run() {
 
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
+      console.log(email);
       const result = await userCollection.findOne({ email });
       res.send(result);
     });
@@ -186,7 +201,7 @@ async function run() {
 
     // creating packages
 
-    app.post("/packages", verifyToken, verifyAdmin, async (req, res) => {
+    app.post("/packages", async (req, res) => {
       const package = req.body;
       const result = await packageCollection.insertOne(package);
       res.send(result);
@@ -231,7 +246,7 @@ async function run() {
     });
 
     // updating guide profile
-    app.put("/users", verifyToken, verifyAdmin, async (req, res) => {
+    app.put("/users", verifyToken, async (req, res) => {
       const guideInfo = req.body;
       const { email } = guideInfo;
       const filter = { email };
@@ -256,7 +271,7 @@ async function run() {
     });
     // creating booking
 
-    app.post("/bookings", verifyToken, async (req, res) => {
+    app.post("/bookings", async (req, res) => {
       const booking = req.body;
       const { package_id, tourist_email } = req.body;
       const idEmailExist = await bookingCollection
@@ -287,27 +302,24 @@ async function run() {
     // booking count router for checking how many times a user is making booking
     app.get("/bookings/count/:email", async (req, res) => {
       const email = req.params.email;
-      const count = await bookingCollection.estimatedDocumentCount({ email });
+      const count = await bookingCollection.countDocuments({
+        tourist_email: email,
+      });
       res.send({ count });
     });
 
     // getting bookings where guides email appeared
-    app.get(
-      "/bookings/guide/:email",
-      verifyToken,
-      verifyGuide,
-      async (req, res) => {
-        const email = req.params.email;
-        const result = await bookingCollection
-          .find({ guide_email: email })
-          .toArray();
-        res.send(result);
-      }
-    );
+    app.get("/bookings/guide/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await bookingCollection
+        .find({ guide_email: email })
+        .toArray();
+      res.send(result);
+    });
 
     // guide updating bookings status route
 
-    app.put("/bookings", verifyToken, verifyGuide, async (req, res) => {
+    app.put("/bookings", async (req, res) => {
       const { id, status } = req.query;
       const filter = { _id: new ObjectId(id) };
       const updateBooking = {
@@ -335,7 +347,7 @@ async function run() {
 
     // wishlist data create with post method
 
-    app.post("/wishlists", verifyToken, async (req, res) => {
+    app.post("/wishlists", async (req, res) => {
       const wishlist = req.body;
       const result = await wishListCollection.insertOne(wishlist);
       res.send(result);
@@ -417,8 +429,6 @@ async function run() {
 
     app.put("/payment", async (req, res) => {
       const { _id: booking_id, ...paymentInfo } = req.body;
-      console.log(paymentInfo);
-      console.log(booking_id);
 
       // Insert payment info into the payment collection
       const resultOfPayment = await paymentCollection.insertOne(paymentInfo);
