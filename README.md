@@ -32,7 +32,7 @@ To get a local copy up and running, follow these steps:
 
 ### Installation
 
-- Step-1: git clone https://github.com/Jaman-Shah/bd-tour-client.git
+- Step-1: git clone https://github.com/Jaman-Shah/bd-tour-server.git
 - Step-2: cd bd-tour-client
 - Step-3: npm install
-- Step-4: npm run dev
+- Step-4: npm start
